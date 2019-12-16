@@ -39,6 +39,7 @@ export const createServices = (state, dispatch) => {
       .map(project => ({
         ...project,
         slug: slugify(project.name, { lower: true }),
+        columns: getColumns((column) => column.projectId === project.id),
       }))
       .filter(filter);
   };
@@ -58,6 +59,24 @@ export const createServices = (state, dispatch) => {
     dispatch({ type: 'EDIT_PROJECT', payload: { id, name, description } });
   };
 
+  const getColumns = (filter) => {
+    if (!filter) filter = () => true;
+
+    return state.columns.ids
+      .map(id => state.columns.data[id])
+      .sort((a, b) => a.ordering - b.ordering)
+      .filter(filter);
+  }
+
+  const createColumn = (name, projectId) => {
+    const id = uuid();
+    const ordering = getColumns((column) => column.projectId === projectId).length;
+
+    dispatch({ type: 'CREATE_COLUMN', payload: { id, name, projectId, ordering } });
+
+    return id;
+  };
+
   return {
     getDashboards,
     getPanels,
@@ -68,6 +87,8 @@ export const createServices = (state, dispatch) => {
     getProjectBySlug,
     createProject,
     editProject,
+    getColumns,
+    createColumn,
   };
 };
 

@@ -1,25 +1,62 @@
-import React, { useReducer } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
-import { ListGroup, ListGroupItem, FormGroup, Col, Input, Form, Label, Button, Container, Card, CardHeader, CardBody, CardText } from 'reactstrap';
-import { Link, useHistory } from 'react-router-dom';
+import { ModalBody, ListGroup, ListGroupItem, Col, Button, Container, Card, CardHeader, CardBody, CardText, Row, Modal, ModalHeader, Nav, NavItem, NavLink } from 'reactstrap';
+import { Link, useHistory, Switch } from 'react-router-dom';
+import { useStore } from 'react-redux';
 
 import { useServices, createServices } from '../state/services';
 import { reverse } from '../routing';
-import { useStore } from 'react-redux';
+import { SimpleForm } from './SimpleForm';
+
+const ProjectLayout = ({ slug, children }) => {
+  const { getProjectBySlug } = useServices();
+
+  const { name } = getProjectBySlug(slug);
+
+  return (
+    <Row>
+      <Col md="2">
+        <Nav vertical>
+          <NavItem>
+            <NavLink tag={Link} to={reverse('projects-project-view', slug)}>{name}</NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink tag={Link} to={reverse('projects-workboard-view', slug)}>Workboard</NavLink>
+          </NavItem>
+        </Nav>
+      </Col>
+      <Col md="10">
+        <Switch>
+          {children}
+        </Switch>
+      </Col>
+    </Row>
+  );
+};
+
+ProjectLayout.propTypes = {
+  slug: PropTypes.string.isRequired,
+  children: PropTypes.element.isRequired,
+};
 
 export const Projects = () => {
   const { getProjects } = useServices();
 
-  const projects = getProjects();
+  const projects = getProjects().slice(0, 3);
 
   return (
     <Card>
-      <CardHeader>
-        Projects
+      <CardHeader
+        className="d-flex justify-content-between align-items-center"
+      >
+        <span>Projects</span>
+        <Button tag={Link} to={reverse('projects-projects-view')}>
+          View all
+        </Button>
       </CardHeader>
       {projects.length > 0 && (
-        <CardBody className="pb-0">
+        <CardBody>
           <ListGroup flush>
             {projects.map(project => (
               <ListGroupItem
@@ -33,70 +70,9 @@ export const Projects = () => {
           </ListGroup>
         </CardBody>
       ) }
-      <CardBody className="text-center">
-        <Button tag={Link} to={reverse('projects-project-create')}>
-          + Create project
-        </Button>
-      </CardBody>
     </Card>
   );
-}
-
-export const ProjectsView = () => <Projects />;
-
-const SimpleForm = ({ data, spec, onSubmit, submitText, children }) => {
-  const [state, dispatch] = useReducer((_state, { key, value }) => ({ ..._state, [key]: value }), data);
-
-  const validators = {};
-  for (const { key, validate } of spec.filter(({ validate }) => validate)) {
-    validators[key] = validate;
-  }
-
-  const validate = (state) => {
-    for (const key in validators) {
-      const validator = validators[key];
-      const value = state[key];
-
-      if (!validator(value)) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  return (
-    <Form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (validate(state)) {
-          onSubmit(state);
-        }
-      }}
-    >
-      {spec.map(({ key, label, type, props }) => (
-        <FormGroup key={key} row>
-          <Label for={key} sm={2} className="text-right">{label}</Label>
-          <Col sm={10}>
-            <Input
-              type={type}
-              id={key}
-              name={key}
-              value={state[key]}
-              onChange={e => dispatch({ key, value: e.target.value })}
-              placeholder={data[key] || label}
-              {...(props || {})}
-            />
-          </Col>
-        </FormGroup>
-      ))}
-      <FormGroup className="text-right">
-        {children}
-        <Button disabled={!validate(state)} color="primary" className="ml-3">{submitText}</Button>
-      </FormGroup>
-    </Form>
-  );
-}
+};
 
 export const CreateProject = () => {
   const store = useStore();
@@ -147,33 +123,36 @@ export const CreateProject = () => {
 
 export const Project = ({ name, description, slug }) => {
   return (
-    <Card>
-      <CardHeader className="d-flex position-relative">
-        {name}
-        <Button
-          outline
-          color="secondary"
-          className="position-absolute"
-          style={{ marginTop: -7, right: 0, marginRight: 5 }}
-          tag={Link}
-          to={reverse('projects-project-edit', slug)}
-        >Edit project</Button>
-      </CardHeader>
-      <CardBody>
-        <Container>
-          {typeof description === 'string' ? <CardText>{description}</CardText> : description}
-        </Container>
-      </CardBody>
-    </Card>
+    <ProjectLayout slug={slug}>
+      <Row>
+        <Col md="10">
+          <Card>
+            <CardHeader>
+              {name}
+            </CardHeader>
+            <CardBody>
+              <Container>
+                {typeof description === 'string' ? <CardText>{description}</CardText> : description}
+              </Container>
+            </CardBody>
+          </Card>
+        </Col>
+        <Col md="2">
+          <Nav vertical>
+            <NavLink tag={Link} to={reverse('projects-project-edit', slug)}>Edit details</NavLink>
+          </Nav>
+        </Col>
+      </Row>
+    </ProjectLayout>
   );
 };
 
-export const EditProject = ({ id, name, description }) => {
+export const EditProject = ({ slug }) => {
   const store = useStore();
   const history = useHistory();
-  const { editProject, getDefaultDashboard } = useServices();
+  const { editProject, getProjectBySlug } = useServices();
 
-  const defaultDashboard = getDefaultDashboard();
+  const { id, name, description } = getProjectBySlug(slug);
 
   return (
     <Card>
@@ -207,11 +186,62 @@ export const EditProject = ({ id, name, description }) => {
             }}
             submitText="Save changes"
           >
-            <Button tag={Link} to={reverse('dashboards-dashboard-view', defaultDashboard.slug)}>Cancel</Button>
+            <Button tag={Link} to={reverse('projects-project-view', slug)}>Cancel</Button>
           </SimpleForm>
         </Container>
       </CardBody>
     </Card>
+  );
+};
+
+export const Workboard = ({ slug }) => {
+  const [creatingColumn, setCreatingColumn] = useState(false);
+  const { createColumn, getProjectBySlug } = useServices();
+
+  const toggleSetCreatingColumn = () => setCreatingColumn(state => !state);
+
+  const { id, columns } = getProjectBySlug(slug);
+
+  return (
+    <ProjectLayout slug={slug}>
+      <Row>
+        {columns.map(column => (
+          <Col md="2" key={column.id}>
+            <Card>
+              <CardHeader>{column.name}</CardHeader>
+              <CardBody>
+                <Card>
+                  <CardBody>
+                    <CardText>Foobar!!</CardText>
+                  </CardBody>
+                </Card>
+              </CardBody>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+      <Modal isOpen={creatingColumn} toggle={toggleSetCreatingColumn}>
+        <ModalHeader toggle={toggleSetCreatingColumn}>Create column</ModalHeader>
+        <ModalBody>
+          <SimpleForm
+            data={{ name: '' }}
+            spec={[
+              {
+                key: 'name',
+                label: 'Name',
+                type: 'text',
+                validate: Boolean
+              },
+            ]}
+            onSubmit={({ name }) => {
+              createColumn(name, id);
+              toggleSetCreatingColumn();
+            }}
+            submitText="Create column"
+          />
+        </ModalBody>
+      </Modal>
+    </ProjectLayout>
   );
 };
 
@@ -222,7 +252,9 @@ Project.propTypes = {
 };
 
 EditProject.propTypes = {
-  id: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
+  slug: PropTypes.string.isRequired,
+};
+
+Workboard.propTypes = {
+  slug: PropTypes.string.isRequired,
 };

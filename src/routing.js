@@ -4,6 +4,7 @@ const views = {
   'projects-projects-view': '/projects/projects/view',
   'projects-project-create': '/projects/project/create',
   'projects-project-edit': (slug) => `/projects/project/edit/${slug}`,
+  'projects-workboard-view': (slug) => `/projects/workboard/view/${slug}`,
 };
 
 export const reverse = (name, ...args) => {

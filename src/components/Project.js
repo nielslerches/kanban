@@ -156,7 +156,9 @@ export const Project = ({ name, description, slug }) => {
         >Edit project</Button>
       </CardHeader>
       <CardBody>
-        {typeof description === 'string' ? <CardText>{description}</CardText> : description}
+        <Container>
+          {typeof description === 'string' ? <CardText>{description}</CardText> : description}
+        </Container>
       </CardBody>
     </Card>
   );

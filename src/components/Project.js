@@ -91,9 +91,9 @@ const SimpleForm = ({ data, spec, onSubmit, submitText, children }) => {
         </FormGroup>
       ))}
       <FormGroup className="text-right">
-        <Button disabled={!validate(state)} color="primary">{submitText}</Button>
+        {children}
+        <Button disabled={!validate(state)} color="primary" className="ml-3">{submitText}</Button>
       </FormGroup>
-      {children}
     </Form>
   );
 }
@@ -101,7 +101,9 @@ const SimpleForm = ({ data, spec, onSubmit, submitText, children }) => {
 export const CreateProject = () => {
   const store = useStore();
   const history = useHistory();
-  const { createProject } = useServices();
+  const { createProject, getDefaultDashboard } = useServices();
+
+  const defaultDashboard = getDefaultDashboard();
 
   return (
     <Card>
@@ -134,7 +136,9 @@ export const CreateProject = () => {
               history.push(reverse('projects-project-view', project.slug));
             }}
             submitText="Create new project"
-          />
+          >
+            <Button tag={Link} to={reverse('dashboards-dashboard-view', defaultDashboard.slug)}>Cancel</Button>
+          </SimpleForm>
         </Container>
       </CardBody>
     </Card>
@@ -167,7 +171,9 @@ export const Project = ({ name, description, slug }) => {
 export const EditProject = ({ id, name, description }) => {
   const store = useStore();
   const history = useHistory();
-  const { editProject } = useServices();
+  const { editProject, getDefaultDashboard } = useServices();
+
+  const defaultDashboard = getDefaultDashboard();
 
   return (
     <Card>
@@ -200,7 +206,9 @@ export const EditProject = ({ id, name, description }) => {
               history.push(reverse('projects-project-view', project.slug));
             }}
             submitText="Save changes"
-          />
+          >
+            <Button tag={Link} to={reverse('dashboards-dashboard-view', defaultDashboard.slug)}>Cancel</Button>
+          </SimpleForm>
         </Container>
       </CardBody>
     </Card>

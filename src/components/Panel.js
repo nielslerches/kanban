@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Card, CardHeader, CardText, CardBody } from 'reactstrap';
+import { Card, CardHeader, CardBody } from 'reactstrap';
 import { Projects } from './Project';
 
 const SimplePanel = ({ name, children }) => (
@@ -30,5 +30,11 @@ Panel.propTypes = {
 };
 
 TextPanel.propTypes = {
+  name: PropTypes.string.isRequired,
   data: PropTypes.string.isRequired,
+};
+
+SimplePanel.propTypes = {
+  name: PropTypes.string.isRequired,
+  children: PropTypes.oneOfType([PropTypes.element, PropTypes.string]).isRequired,
 };
